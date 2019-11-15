@@ -279,7 +279,7 @@ namespace Microsoft.ML.Data
             int[] perm = GetPermutationOrNull(rand);
             for (int i = 0; i < n; ++i)
             {
-                System.Console.WriteLine("CacheDataView.GetRowCursorSetWaiterCore CreateCursor");
+                System.Console.WriteLine("CacheDataView.GetRowCursorSetWaiterCore: CreateCursor");
                 // While the counter and waiter is shared among the cursors, the indexer is not.
                 if (perm == null)
                     cursors[i] = CreateCursor(predicate, BlockSequenceIndex<TWaiter>.Create(waiter, scheduler));

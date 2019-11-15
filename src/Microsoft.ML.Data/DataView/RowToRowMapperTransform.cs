@@ -196,7 +196,7 @@ namespace Microsoft.ML.Data
 
         public override DataViewRowCursor[] GetRowCursorSet(IEnumerable<DataViewSchema.Column> columnsNeeded, int n, Random rand = null)
         {
-            System.Console.WriteLine("? -> RowToRowMapperTransform.GetRowCursorSet");
+            System.Console.WriteLine("? -> RowToRowMapperTransform.GetRowCursorSet(" + columnsNeeded + ", " + n + ", " + rand + ")");
             Host.CheckValueOrNull(rand);
 
             var predicate = RowCursorUtils.FromColumnsToPredicate(columnsNeeded, OutputSchema);

@@ -23,10 +23,12 @@ namespace Microsoft.ML
 
         internal PipeEngine(IHostEnvironment env, IDataView pipe, bool ignoreMissingColumns, SchemaDefinition schemaDefinition = null)
         {
+            System.Console.WriteLine("? -> PipeEngine.PipeEngine");
             Contracts.AssertValue(env);
             env.AssertValue(pipe);
             env.AssertValueOrNull(schemaDefinition);
 
+            System.Console.WriteLine("PipeEngine.PipeEngine: env.AsCursorable");
             _cursorablePipe = env.AsCursorable<TDst>(pipe, ignoreMissingColumns, schemaDefinition);
             _counter = 0;
         }

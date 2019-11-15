@@ -89,6 +89,7 @@ namespace Microsoft.ML.Data
 
         private TypedCursorable(IHostEnvironment env, IDataView data, bool ignoreMissingColumns, InternalSchemaDefinition schemaDefn)
         {
+            System.Console.WriteLine("? -> TypedCursorable.TypedCursorable");
             Contracts.AssertValue(env, "env");
             _host = env.Register("TypedCursorable");
             _host.AssertValue(data);
@@ -100,6 +101,7 @@ namespace Microsoft.ML.Data
             var indices = new List<int>();
             foreach (var col in schemaDefn.Columns)
             {
+                System.Console.WriteLine("TypedCursorable.TypedCursorable col.ColumnName: " + col.ColumnName);
                 int colIndex;
                 if (!_data.Schema.TryGetColumnIndex(col.ColumnName, out colIndex))
                 {
@@ -140,7 +142,10 @@ namespace Microsoft.ML.Data
         /// </summary>
         private static bool IsCompatibleType(DataViewType colType, MemberInfo memberInfo)
         {
+            System.Console.WriteLine("? -> TypedCursorable.IsCompatibleType");
             InternalSchemaDefinition.GetVectorAndItemType(memberInfo, out bool isVector, out Type itemType);
+            System.Console.WriteLine("TypedCursorable.IsCompatibleType isVector: " + isVector);
+            System.Console.WriteLine("TypedCursorable.IsCompatibleType itemType: " + itemType);
             if (isVector)
                 return colType is VectorDataViewType vectorType && vectorType.ItemType.RawType == itemType;
             else
@@ -229,14 +234,18 @@ namespace Microsoft.ML.Data
         /// <returns>The constructed Cursorable.</returns>
         public static TypedCursorable<TRow> Create(IHostEnvironment env, IDataView data, bool ignoreMissingColumns, SchemaDefinition schemaDefinition)
         {
+            System.Console.WriteLine("? -> TypedCursorable<" + typeof(TRow) + ">.Create");
             Contracts.AssertValue(env);
             env.AssertValue(data);
             env.AssertValueOrNull(schemaDefinition);
 
+            System.Console.WriteLine("TypedCursorable<" + typeof(TRow) + ">.Create: InternalSchemaDefinition.Create");
             var outSchema = schemaDefinition == null
                 ? InternalSchemaDefinition.Create(typeof(TRow), SchemaDefinition.Direction.Write)
                 : InternalSchemaDefinition.Create(typeof(TRow), schemaDefinition);
+            System.Console.WriteLine("TypedCursorable<" + typeof(TRow) + ">.Create: InternalSchemaDefinition.Create returns " + outSchema);
 
+            System.Console.WriteLine("TypedCursorable<" + typeof(TRow) + ">.TypedCursorable<" + typeof(TRow) + ">");
             return new TypedCursorable<TRow>(env, data, ignoreMissingColumns, outSchema);
         }
 
@@ -580,9 +589,11 @@ namespace Microsoft.ML.Data
             SchemaDefinition schemaDefinition = null)
             where TRow : class, new()
         {
+            System.Console.WriteLine("? -> CursoringUtils.AsCursorable");
             env.CheckValue(data, nameof(data));
             env.CheckValueOrNull(schemaDefinition);
 
+            System.Console.WriteLine("CursoringUtils.AsCursorable: TypedCursorable<" + typeof(TRow) + ">.Create");
             return TypedCursorable<TRow>.Create(env, data, ignoreMissingColumns, schemaDefinition);
         }
     }

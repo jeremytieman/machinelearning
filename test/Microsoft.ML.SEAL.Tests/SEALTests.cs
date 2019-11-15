@@ -157,7 +157,9 @@ namespace Microsoft.ML.Tests.SEAL
             System.Console.WriteLine("\n\nTransforming encrypted data\n");
             var encryptedPrediction = encryptedModel.Transform(data);
             System.Console.WriteLine("\nCompleted transforming encrypted data\n\n");
+            System.Console.WriteLine("\nCreating unencrypted enumerable\n\n");
             var rawUnencryptedPrediction = mlContext.Data.CreateEnumerable<SamplesUtils.DatasetUtils.CalibratedBinaryClassifierOutput>(unencryptedPrediction, false);
+            System.Console.WriteLine("\nCreating encrypted enumerable\n\n");
             var rawEncryptedPrediction = mlContext.Data.CreateEnumerable<SamplesUtils.DatasetUtils.CalibratedBinaryClassifierOutput>(encryptedPrediction, false);
             //var rawEncryptedPrediction = mlContext.Data.CreateEnumerable<TestClass>(encryptedPrediction, false);
 
