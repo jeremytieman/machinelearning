@@ -30,6 +30,7 @@ namespace Microsoft.ML
 
             System.Console.WriteLine("PipeEngine.PipeEngine: env.AsCursorable");
             _cursorablePipe = env.AsCursorable<TDst>(pipe, ignoreMissingColumns, schemaDefinition);
+            System.Console.WriteLine("PipeEngine.PipeEngine env.AsCursorable returns: " + _cursorablePipe);
             _counter = 0;
         }
 
@@ -37,6 +38,7 @@ namespace Microsoft.ML
         {
             System.Console.WriteLine("? -> PipeEngine.RunPipe");
             var curCounter = _counter;
+            System.Console.WriteLine("PipeEngine.RunPipe _cursorablePipe: " + _cursorablePipe);
             System.Console.WriteLine("PipeEngine.RunPipe: GetCursor");
             using (var cursor = _cursorablePipe.GetCursor())
             {

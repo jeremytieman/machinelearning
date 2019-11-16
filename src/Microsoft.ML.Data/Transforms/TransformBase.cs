@@ -84,7 +84,6 @@ namespace Microsoft.ML.Data
                 return curs;
             }
 
-            System.Console.WriteLine("TransformBase.GetRowCursor: GetRowCursorCore");
             return GetRowCursorCore(columnsNeeded, rng);
         }
 

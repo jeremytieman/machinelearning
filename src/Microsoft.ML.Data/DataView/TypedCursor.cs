@@ -157,6 +157,7 @@ namespace Microsoft.ML.Data
         /// </summary>
         public RowCursor<TRow> GetCursor()
         {
+            System.Console.WriteLine("? -> TypedCursorable.GetCursor");
             return GetCursor(x => false);
         }
 
