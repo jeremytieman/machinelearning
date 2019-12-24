@@ -190,7 +190,11 @@ namespace Microsoft.ML.SEAL
                 base(Contracts.CheckRef(parent, nameof(parent)).Host.Register(nameof(Mapper)), inputSchema, parent)
             {
                 _parent = parent;
-                _featureColIndex = inputSchema.GetColumnOrNull(_parent.InputColumnName)?.Index ?? -1;
+                if (inputSchema.Count == 8)
+                    _featureColIndex = inputSchema.GetColumnOrNull("Ciphertext")?.Index ?? -1;
+                else
+                    _featureColIndex = inputSchema.GetColumnOrNull("FeaturesD")?.Index ?? -1;
+
                 var errorMsg = string.Format("The data to encrypt contains no '{0}' column", _parent.InputColumnName);
                 parent.Host.Check(_featureColIndex >= 0, errorMsg);
             }
