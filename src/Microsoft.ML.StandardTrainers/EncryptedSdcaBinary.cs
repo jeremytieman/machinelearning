@@ -43,7 +43,7 @@ namespace Microsoft.ML.SEAL
     /// ]]>
     /// </format>
     /// </remarks>
-    /// <seealso cref="EncryptedStandardTrainersCatalog.EncryptedSdcaLogisticRegression(BinaryClassificationCatalog.BinaryClassificationTrainers, ulong, IEnumerable&lt;SmallModulus&gt;, double, string, string, string, string, float?, float?, int?)"/>
+    /// <seealso cref="EncryptedStandardTrainersCatalog.EncryptedSdcaLogisticRegression(BinaryClassificationCatalog.BinaryClassificationTrainers, ulong, IEnumerable&lt;SmallModulus&gt;, double, string, string, string, string, string, float?, float?, int?)"/>
     /// <seealso cref="EncryptedStandardTrainersCatalog.EncryptedSdcaLogisticRegression(BinaryClassificationCatalog.BinaryClassificationTrainers, EncryptedSdcaLogisticRegressionBinaryTrainer.Options)"/>
     /// <seealso cref="Options"/>
     public sealed class EncryptedSdcaLogisticRegressionBinaryTrainer :
@@ -52,7 +52,8 @@ namespace Microsoft.ML.SEAL
         private readonly ulong _polyModulusDegree;
         private readonly IEnumerable<SmallModulus> _coeffModuli;
         private readonly double _scale;
-        private readonly String _encryptedFeatureColumnName;
+        private readonly string _encryptedFeatureColumnName;
+        private readonly string _sealGaloisKeyFilePath;
 
         /// <summary>
         /// Options for the <see cref="EncryptedSdcaLogisticRegressionBinaryTrainer"/> as used in
@@ -82,7 +83,13 @@ namespace Microsoft.ML.SEAL
             /// Name of column containing the encrypted data.
             /// </summary>
             [Argument(ArgumentType.Required, HelpText = "Name of column containing the encrypted data", ShortName = "encCol")]
-            public String EncryptedFeatureColumnName;
+            public string EncryptedFeatureColumnName;
+
+            /// <summary>
+            /// Path to file containing the Galois key.
+            /// </summary>
+            [Argument(ArgumentType.Required, HelpText = "Path to file containing the Galois key.", ShortName = "galKey")]
+            public string SealGaloisKeyFilePath;
 
             internal override void Check(IHostEnvironment env)
             {
@@ -102,6 +109,7 @@ namespace Microsoft.ML.SEAL
             IEnumerable<SmallModulus> coeffModuli,
             double scale,
             string encryptedFeatureColumnName,
+            string sealGaloisKeyFilePath,
             string labelColumnName = DefaultColumnNames.Label,
             string featureColumnName = DefaultColumnNames.Features,
             string weightColumnName = null,
@@ -114,6 +122,7 @@ namespace Microsoft.ML.SEAL
             _coeffModuli = coeffModuli;
             _scale = scale;
             _encryptedFeatureColumnName = encryptedFeatureColumnName;
+            _sealGaloisKeyFilePath = sealGaloisKeyFilePath;
         }
 
         internal EncryptedSdcaLogisticRegressionBinaryTrainer(IHostEnvironment env, Options options)
@@ -123,6 +132,7 @@ namespace Microsoft.ML.SEAL
             _coeffModuli = options.CoeffModuli;
             _scale = options.Scale;
             _encryptedFeatureColumnName = options.EncryptedFeatureColumnName;
+            _sealGaloisKeyFilePath = options.SealGaloisKeyFilePath;
         }
 
         private protected override CalibratedModelParametersBase<LinearBinaryModelParameters, PlattCalibrator> CreatePredictor(VBuffer<float>[] weights, float[] bias)
@@ -137,7 +147,7 @@ namespace Microsoft.ML.SEAL
                 Conversions.Instance.GetIsDefaultPredicate<float>(NumberDataViewType.Single));
 
             var linearModel = new LinearBinaryModelParameters(Host, in maybeSparseWeights, bias[0]);
-            var encryptedLinearModel = new EncryptedLinearBinaryModelParameters(Host, in maybeSparseWeights, bias[0], _polyModulusDegree, _coeffModuli, _scale);
+            var encryptedLinearModel = new EncryptedLinearBinaryModelParameters(Host, in maybeSparseWeights, bias[0], _polyModulusDegree, _coeffModuli, _sealGaloisKeyFilePath, _scale);
             var calibrator = new PlattCalibrator(Host, -1, 0);
             return new EncryptedParameterMixingCalibratedModelParameters<LinearBinaryModelParameters, PlattCalibrator, EncryptedLinearBinaryModelParameters>(Host, linearModel, calibrator, encryptedLinearModel);
         }

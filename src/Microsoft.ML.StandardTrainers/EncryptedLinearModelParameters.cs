@@ -26,7 +26,7 @@ namespace Microsoft.ML.SEAL
     /// Base class for linear model parameters.
     /// </summary>
     public abstract class EncryptedLinearModelParameters : ModelParametersBase<float>,
-        IValueMapperTwoToOne,
+        IValueMapper,
         ICanSaveInIniFormat,
         ICanSaveInTextFormat,
         ICanSaveInSourceCode,
@@ -88,6 +88,8 @@ namespace Microsoft.ML.SEAL
 
         private CKKSEncoder _ckksEncoder;
 
+        private GaloisKeys _galoisKey;
+
         private DataViewType _inputType;
 
         bool ICanSavePfa.CanSavePfa => true;
@@ -110,8 +112,9 @@ namespace Microsoft.ML.SEAL
         /// <param name="bias">The bias added to every output score.</param>
         /// <param name="polyModulusDegree">The value of the PolyModulusDegree encryption parameter.</param>
         /// <param name="coeffModuli">The coefficient moduli.</param>
+        /// <param name="sealGaloisKeyFilePath">The path to the file containing the Galois key.</param>
         /// <param name="scale">Scaling parameter defining encoding precision.</param>
-        internal EncryptedLinearModelParameters(IHostEnvironment env, string name, in VBuffer<float> weights, float bias, ulong polyModulusDegree, IEnumerable<SmallModulus> coeffModuli, double scale)
+        internal EncryptedLinearModelParameters(IHostEnvironment env, string name, in VBuffer<float> weights, float bias, ulong polyModulusDegree, IEnumerable<SmallModulus> coeffModuli, string sealGaloisKeyFilePath, double scale)
             : base(env, name)
         {
             Host.CheckParam(FloatUtils.IsFinite(weights.GetValues()), nameof(weights), "Cannot initialize linear predictor with non-finite weights");
@@ -119,7 +122,7 @@ namespace Microsoft.ML.SEAL
 
             Weight = weights;
             Bias = bias;
-            _inputType = new CipherGaloisKeysDataViewType();
+            _inputType = new CiphertextDataViewType();
 
             if (Weight.IsDense)
                 _weightsDense = Weight;
@@ -132,6 +135,11 @@ namespace Microsoft.ML.SEAL
             var sealContext = new SEALContext(encryptionParameters);
             _evaluator = new Evaluator(sealContext);
             _ckksEncoder = new CKKSEncoder(sealContext);
+            _galoisKey = new GaloisKeys();
+            using (var fs = File.Open(sealGaloisKeyFilePath, FileMode.OpenOrCreate))
+            {
+                _galoisKey.Load(sealContext, fs);
+            }
             _encodedWeights = new List<Plaintext>();
             var slotCount = (int)_ckksEncoder.SlotCount;
 
@@ -265,7 +273,7 @@ namespace Microsoft.ML.SEAL
         }
 
         // Generate the score from the given values, assuming they have already been normalized.
-        private protected virtual Ciphertext Score(in VBuffer<Ciphertext> src, in GaloisKeys galoisKeys)
+        private protected virtual Ciphertext Score(in VBuffer<Ciphertext> src)
         {
             var rowDotProduct = new List<Ciphertext>();
 
@@ -285,7 +293,7 @@ namespace Microsoft.ML.SEAL
 
             for (int i = 1; i < (int)_ckksEncoder.SlotCount; i <<= 1)
             {
-                _evaluator.RotateVector(prediction, steps: i, galoisKeys: galoisKeys, destination: rotated);
+                _evaluator.RotateVector(prediction, steps: i, galoisKeys: _galoisKey, destination: rotated);
                 _evaluator.AddInplace(prediction, rotated);
             }
 
@@ -319,28 +327,27 @@ namespace Microsoft.ML.SEAL
             }
         }
 
-        DataViewType IValueMapperTwoToOne.InputType
+        DataViewType IValueMapper.InputType
         {
             get { return _inputType; }
         }
 
-        DataViewType IValueMapperTwoToOne.OutputType
+        DataViewType IValueMapper.OutputType
         {
-            get { return new CipherGaloisKeysDataViewType(); }
+            get { return new CiphertextDataViewType(); }
         }
 
-        ValueMapperTwoToOne<TIn, TKey, TOut> IValueMapperTwoToOne.GetMapper<TIn, TKey, TOut>()
+        ValueMapper<TIn, TOut> IValueMapper.GetMapper<TIn, TOut>()
         {
             Contracts.Check(typeof(TIn) == typeof(VBuffer<Ciphertext>));
-            Contracts.Check(typeof(TKey) == typeof(GaloisKeys));
             Contracts.Check(typeof(TOut) == typeof(Ciphertext));
 
-            ValueMapperTwoToOne<VBuffer<Ciphertext>, GaloisKeys, Ciphertext> del =
-                (in VBuffer<Ciphertext> src, in GaloisKeys key, ref Ciphertext dst) =>
+            ValueMapper<VBuffer<Ciphertext>, Ciphertext> del =
+                (in VBuffer<Ciphertext> src, ref Ciphertext dst) =>
                 {
-                    dst = Score(in src, in key);
+                    dst = Score(in src);
                 };
-            return (ValueMapperTwoToOne<TIn, TKey, TOut>)(Delegate)del;
+            return (ValueMapper<TIn, TOut>)(Delegate)del;
         }
 
         /// <summary>
@@ -470,6 +477,7 @@ namespace Microsoft.ML.SEAL
         /// <param name="bias">The bias added to every output score.</param>
         /// <param name="polyModulusDegree">The value of the PolyModulusDegree encryption parameter.</param>
         /// <param name="coeffModuli">The coefficient moduli.</param>
+        /// <param name="sealGaloisKeyFilePath">The path to the file containing the Galois key.</param>
         /// <param name="scale">Scaling parameter defining encoding precision.</param>
         /// <param name="stats"></param>
         internal EncryptedLinearBinaryModelParameters(
@@ -478,9 +486,10 @@ namespace Microsoft.ML.SEAL
             float bias,
             ulong polyModulusDegree,
             IEnumerable<SmallModulus> coeffModuli,
+            string sealGaloisKeyFilePath,
             double scale,
             ModelStatisticsBase stats = null)
-            : base(env, RegistrationName, in weights, bias, polyModulusDegree, coeffModuli, scale)
+            : base(env, RegistrationName, in weights, bias, polyModulusDegree, coeffModuli, sealGaloisKeyFilePath, scale)
         {
             Contracts.AssertValueOrNull(stats);
             Statistics = stats;

@@ -69,13 +69,13 @@ namespace Microsoft.ML.Data
     [BestFriend]
     internal interface IValueMapperTwoToOne
     {
-        DataViewType InputType { get; }
+        /*DataViewType InputType { get; }
         DataViewType OutputType { get; }
 
         /// <summary>
         /// Get a delegate used for mapping from input to output values. Note that the delegate
         /// should only be used on a single thread - it should NOT be assumed to be safe for concurrency.
         /// </summary>
-        ValueMapperTwoToOne<TSrc, TKey, TDst> GetMapper<TSrc, TKey, TDst>();
+        ValueMapperTwoToOne<TSrc, TKey, TDst> GetMapper<TSrc, TKey, TDst>();*/
     }
 }

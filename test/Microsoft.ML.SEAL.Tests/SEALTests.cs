@@ -40,6 +40,26 @@ namespace Microsoft.ML.Tests.SEAL
             public double[] plaintext;
         }
 
+        private void GenerateKeys(SEALContext context)
+        {
+            var keygen = new KeyGenerator(context);
+
+            using (var fs = File.Open("secret.key", FileMode.OpenOrCreate))
+            {
+                keygen.SecretKey.Save(fs);
+            }
+
+            using (var fs2 = File.Open("public.key", FileMode.OpenOrCreate))
+            {
+                keygen.PublicKey.Save(fs2);
+            }
+
+            using (var fs3 = File.Open("galois.key", FileMode.OpenOrCreate))
+            {
+                keygen.GaloisKeys().Save(fs3);
+            }
+        }
+
         [Fact]
         public void EncryptFeaturesTest()
         {
@@ -57,17 +77,7 @@ namespace Microsoft.ML.Tests.SEAL
                 CoeffModulus = coeffModuli
             };
             var context = new SEALContext(encParams);
-            var keygen = new KeyGenerator(context);
-
-            using (var fs = File.Open("secret.key", FileMode.OpenOrCreate))
-            {
-                keygen.SecretKey.Save(fs);
-            }
-
-            using (var fs2 = File.Open("public.key", FileMode.OpenOrCreate))
-            {
-                keygen.PublicKey.Save(fs2);
-            }
+            GenerateKeys(context);
 
             var encryptPipeline = ML.Transforms.EncryptFeatures(scale,
                 polyModDegree,
@@ -131,6 +141,8 @@ namespace Microsoft.ML.Tests.SEAL
                 PolyModulusDegree = polyModDegree,
                 CoeffModulus = coeffModuli
             };
+            var context = new SEALContext(encParams);
+            GenerateKeys(context);
 
             var encryptPipeline = mlContext.Transforms.Conversion.ConvertType("FeaturesD", "Features", Data.DataKind.Double)
                 .Append(mlContext.Transforms.EncryptFeatures(scale, polyModDegree, "public.key", coeffModuli, "Ciphertext", "Features"));
@@ -138,8 +150,8 @@ namespace Microsoft.ML.Tests.SEAL
             // Step 2: Create a binary classifier.
             // We set the "Label" column as the label of the dataset, and the "Features" column as the features column.
             var esdcaPipeline = encryptPipeline.Append(mlContext.BinaryClassification.Trainers.EncryptedSdcaLogisticRegression(polyModulusDegree: polyModDegree,
-                coeffModuli: coeffModuli, scale: scale, encryptedFeatureColumnName: "Ciphertext", labelColumnName: "Label", featureColumnName: "Features",
-                l2Regularization: 0.001f));
+                coeffModuli: coeffModuli, scale: scale, encryptedFeatureColumnName: "Ciphertext", sealGaloisKeyFilePath: "galois.key", labelColumnName: "Label",
+                featureColumnName: "Features", l2Regularization: 0.001f));
 
             var decryptPipeline = esdcaPipeline.Append(mlContext.Transforms.DecryptFeatures(scale, polyModDegree, "secret.key", coeffModuli, "Plaintext", "Label"));
 
@@ -157,7 +169,7 @@ namespace Microsoft.ML.Tests.SEAL
             System.Console.WriteLine("\nCompleted transforming encrypted data\n\n");
             var rawUnencryptedPrediction = mlContext.Data.CreateEnumerable<SamplesUtils.DatasetUtils.CalibratedBinaryClassifierOutput>(unencryptedPrediction, false);
             var rawEncryptedPrediction = mlContext.Data.CreateEnumerable<SamplesUtils.DatasetUtils.CalibratedBinaryClassifierOutput>(encryptedPrediction, false);
-            var p = encryptedPrediction.Preview();
+            //var p = encryptedPrediction.Preview();
             //var rawEncryptedPrediction = mlContext.Data.CreateEnumerable<TestClass>(encryptedPrediction, false);
 
             System.Console.WriteLine("\n\nEnumerating data\n");

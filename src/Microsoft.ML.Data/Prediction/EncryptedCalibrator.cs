@@ -33,14 +33,12 @@ namespace Microsoft.ML.SEAL
         where TCalibrator : class, ICalibrator
     {
         private readonly IValueMapper _mapper;
-        private readonly IValueMapperTwoToOne _mapperTwoToOne;
+        private readonly IValueMapper _eMapper;
         private readonly IFeatureContributionMapper _featureContribution;
 
         DataViewType IValueMapper.InputType => _mapper.InputType;
         DataViewType IValueMapper.OutputType => _mapper.OutputType;
         DataViewType IValueMapperDist.DistType => NumberDataViewType.Single;
-        DataViewType IValueMapperTwoToOne.InputType => _mapperTwoToOne.InputType;
-        DataViewType IValueMapperTwoToOne.OutputType => _mapperTwoToOne.OutputType;
         bool ICanSavePfa.CanSavePfa => (_mapper as ICanSavePfa)?.CanSavePfa == true;
 
         FeatureContributionCalculator ICalculateFeatureContribution.FeatureContributionCalculator => new FeatureContributionCalculator(this);
@@ -53,7 +51,7 @@ namespace Microsoft.ML.SEAL
             Contracts.AssertValue(Host);
 
             _mapper = SubModel as IValueMapper;
-            _mapperTwoToOne = ePredictor as IValueMapperTwoToOne;
+            _eMapper = ePredictor as IValueMapper;
             Host.Check(_mapper != null, "The predictor does not implement IValueMapper");
             Host.Check(_mapper.OutputType == NumberDataViewType.Single, "The output type of the predictor is expected to be float");
 
@@ -62,7 +60,7 @@ namespace Microsoft.ML.SEAL
 
         ValueMapper<TIn, TOut> IValueMapper.GetMapper<TIn, TOut>()
         {
-            return _mapper.GetMapper<TIn, TOut>();
+            return _eMapper.GetMapper<TIn, TOut>();
         }
 
         ValueMapper<TIn, TOut, TDist> IValueMapperDist.GetMapper<TIn, TOut, TDist>()
@@ -77,14 +75,6 @@ namespace Microsoft.ML.SEAL
                     prob = Calibrator.PredictProbability(score);
                 };
             return (ValueMapper<TIn, TOut, TDist>)(Delegate)del;
-        }
-
-        ValueMapperTwoToOne<TSrc, TKey, TDst> IValueMapperTwoToOne.GetMapper<TSrc, TKey, TDst>()
-        {
-            Host.Check(typeof(TSrc) == typeof(Ciphertext[]));
-            Host.Check(typeof(TKey) == typeof(GaloisKeys));
-            Host.Check(typeof(TDst) == typeof(Ciphertext[]));
-            return _mapperTwoToOne.GetMapper<TSrc, TKey, TDst>();
         }
 
         ValueMapper<TSrc, VBuffer<float>> IFeatureContributionMapper.GetFeatureContributionMapper<TSrc, TDst>(int top, int bottom, bool normalize)
