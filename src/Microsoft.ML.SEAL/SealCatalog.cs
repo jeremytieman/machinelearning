@@ -24,8 +24,7 @@ namespace Microsoft.ML.SEAL
         /// <param name="polyModDegree">The polynomial modulus degree.</param>
         /// <param name="sealKeyFilePath">The path to the SEAL key file.</param>
         /// <param name="coeffModuli">The coefficient moduli needed to create the SEAL context.</param>
-        /// <param name="outputColumnName">Name of the column resulting from the transformation of <paramref name="inputColumnName"/>.
-        /// This column's data type will be the same as that of the input column.</param>
+        /// <param name="outputColumnName">Name of the column resulting from the transformation of <paramref name="inputColumnName"/></param>.
         /// <param name="inputColumnName">Name of the column to copy the data from.
         /// This estimator operates over any data type.</param>
         public static SealEstimator EncryptFeatures(this TransformsCatalog catalog,

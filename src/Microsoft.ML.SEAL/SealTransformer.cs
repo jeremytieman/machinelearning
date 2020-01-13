@@ -190,10 +190,8 @@ namespace Microsoft.ML.SEAL
                 base(Contracts.CheckRef(parent, nameof(parent)).Host.Register(nameof(Mapper)), inputSchema, parent)
             {
                 _parent = parent;
-                if (inputSchema.Count == 8)
-                    _featureColIndex = inputSchema.GetColumnOrNull("Ciphertext")?.Index ?? -1;
-                else
-                    _featureColIndex = inputSchema.GetColumnOrNull("FeaturesD")?.Index ?? -1;
+
+                _featureColIndex = inputSchema.GetColumnOrNull(_parent.InputColumnName)?.Index ?? -1;
 
                 var errorMsg = string.Format("The data to encrypt contains no '{0}' column", _parent.InputColumnName);
                 parent.Host.Check(_featureColIndex >= 0, errorMsg);
@@ -201,10 +199,9 @@ namespace Microsoft.ML.SEAL
 
             protected override DataViewSchema.DetachedColumn[] GetOutputColumnsCore()
             {
-                return new[]
-                {
-                    new DataViewSchema.DetachedColumn(_parent.OutputColumnName, new CiphertextDataViewType())
-                };
+                return _parent.Encrypt ?
+                    new[] { new DataViewSchema.DetachedColumn(_parent.OutputColumnName, new CiphertextDataViewType()) } :
+                    new[] { new DataViewSchema.DetachedColumn(_parent.OutputColumnName, new PlaintextDataViewType()) };
             }
 
             protected override Delegate MakeGetter(DataViewRow input, int iinfo, Func<int, bool> activeOutput, out Action disposer)
@@ -215,12 +212,12 @@ namespace Microsoft.ML.SEAL
 
                 if(_parent.Encrypt)
                 {
-                    var getFeature = input.GetGetter<VBuffer<double>>(input.Schema[_featureColIndex]);
+                    var getFeature = input.GetGetter<VBuffer<float>>(input.Schema[_featureColIndex]);
                     ValueGetter<VBuffer<Ciphertext>> encrypt = (ref VBuffer<Ciphertext> dst) =>
                     {
-                        VBuffer<double> features = default;
+                        VBuffer<float> features = default;
                         getFeature(ref features);
-                        var denseFeatures = new VBuffer<double>();
+                        var denseFeatures = new VBuffer<float>();
                         features.CopyToDense(ref denseFeatures);
                         var ciphers = new List<Ciphertext>();
 
@@ -243,11 +240,11 @@ namespace Microsoft.ML.SEAL
                 else
                 {
                     var getFeature = input.GetGetter<VBuffer<Ciphertext>>(input.Schema[_featureColIndex]);
-                    ValueGetter<VBuffer<double>> decrypt = (ref VBuffer<double> dst) =>
+                    ValueGetter<VBuffer<float>> decrypt = (ref VBuffer<float> dst) =>
                     {
                         VBuffer<Ciphertext> ciphers = default;
                         getFeature(ref ciphers);
-                        var decrypted = new List<double>();
+                        var decrypted = new List<float>();
 
                         foreach (var cipher in ciphers.DenseValues())
                         {
@@ -255,7 +252,7 @@ namespace Microsoft.ML.SEAL
                             _parent.SealDecryptor.Decrypt(cipher, plain);
                             var listVals = new List<double>();
                             _parent.SealCkksEncoder.Decode(plain, listVals);
-                            foreach (var f in listVals) decrypted.Add(f);
+                            foreach (var f in listVals) decrypted.Add((float)f);
                         }
                     };
                     return decrypt;

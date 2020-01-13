@@ -144,16 +144,16 @@ namespace Microsoft.ML.Tests.SEAL
             var context = new SEALContext(encParams);
             GenerateKeys(context);
 
-            var encryptPipeline = mlContext.Transforms.Conversion.ConvertType("FeaturesD", "Features", Data.DataKind.Double)
-                .Append(mlContext.Transforms.EncryptFeatures(scale, polyModDegree, "public.key", coeffModuli, "Ciphertext", "Features"));
+            //var encryptPipeline = mlContext.Transforms.Conversion.ConvertType("FeaturesD", "Features", Data.DataKind.Double)
+            //    .Append(mlContext.Transforms.EncryptFeatures(scale, polyModDegree, "public.key", coeffModuli, "Ciphertext", "Features"));
+            var encryptPipeline = mlContext.Transforms.EncryptFeatures(scale, polyModDegree, "public.key", coeffModuli, "Ciphertext", "Features");
 
             // Step 2: Create a binary classifier.
             // We set the "Label" column as the label of the dataset, and the "Features" column as the features column.
             var esdcaPipeline = encryptPipeline.Append(mlContext.BinaryClassification.Trainers.EncryptedSdcaLogisticRegression(polyModulusDegree: polyModDegree,
-                coeffModuli: coeffModuli, scale: scale, encryptedFeatureColumnName: "Ciphertext", sealGaloisKeyFilePath: "galois.key", labelColumnName: "Label",
-                featureColumnName: "Features", l2Regularization: 0.001f));
+                coeffModuli: coeffModuli, scale: scale, encryptedFeatureColumnName: "Ciphertext", sealGaloisKeyFilePath: "galois.key", l2Regularization: 0.001f));
 
-            var decryptPipeline = esdcaPipeline.Append(mlContext.Transforms.DecryptFeatures(scale, polyModDegree, "secret.key", coeffModuli, "Plaintext", "Label"));
+            var decryptPipeline = esdcaPipeline.Append(mlContext.Transforms.DecryptFeatures(scale, polyModDegree, "secret.key", coeffModuli, "Plaintext", "Ciphertext"));
 
             // Step 3: Train the pipeline created.
             System.Console.WriteLine("\n\nTraining encrypted pipeline\n");

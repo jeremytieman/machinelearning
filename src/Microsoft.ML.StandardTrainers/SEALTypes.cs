@@ -51,6 +51,49 @@ namespace Microsoft.ML.SEAL
         public override string ToString() => "Ciphertext[]";
     }
 
+    public sealed class PlaintextTypeAttribute : DataViewTypeAttribute
+    {
+        /// <summary>
+        /// Create a plaintext
+        /// </summary>
+        public PlaintextTypeAttribute()
+        {
+        }
+
+        /// <summary>
+        /// Plaintext
+        /// </summary>
+        public override bool Equals(DataViewTypeAttribute other)
+        {
+            if (other is PlaintextTypeAttribute otherPlaintext) return true;
+            return false;
+        }
+
+        public override void Register()
+        {
+            DataViewTypeManager.Register(new PlaintextDataViewType(), typeof(Plaintext[]), this);
+        }
+    }
+
+    /// <summary>
+    /// The standard Plaintext type. The representation type of this is Plaintext.
+    /// </summary>
+    public sealed class PlaintextDataViewType : StructuredDataViewType
+    {
+        public PlaintextDataViewType() : base(typeof(Plaintext[]))
+        {
+        }
+
+        public override bool Equals(DataViewType other)
+        {
+            if (other == this) return true;
+            if (other is PlaintextDataViewType otherPlaintext) return true;
+            return false;
+        }
+
+        public override string ToString() => "Plaintext[]";
+    }
+
     public sealed class CipherGaloisKeysTypeAttribute : DataViewTypeAttribute
     {
         /// <summary>
